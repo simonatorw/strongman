@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>Strongman</title>
+		<meta charset="utf-8" />
+		<style>
+			/* global */
+
+			body {
+				background-color: #000;
+				color: #fff;
+				font-family: verdana, sans-serif;
+				font-size: 16px;
+				display: flex;
+				justify-content: center;
+				align-items: flex-start;
+				height: 100vh;
+				margin: 0;
+			}
+
+			.arena {
+				flex: 1;
+				padding: 20px;
+			}
+			
+			#menu {
+				font-size: .8rem;
+				color: #aaa;
+			}
+			
+			.menu-list {
+				margin: 0;
+				list-style-type: none;
+				padding: 0;
+			}
+			
+			.menu-item {
+				cursor: pointer;
+				display: inline-block;
+				margin-right: 20px;
+			}
+			
+			.results {
+				margin: 0;
+				list-style-type: none;
+				padding: 0;
+			}
+			
+			.medal:after {
+				content: "\2b24";
+				margin-right: 6px;
+			}
+			
+		</style>  
+
+	</head>
+	<body>
+		<div class="arena">
+			<header>
+				<nav id="menu">
+					<ul class="menu-list">
+						<li class="menu-item">New</li>
+						<li class="menu-item">Warp</li>
+					</ul>
+				</nav>
+			</header>
+			<h1></h1>
+			<div class="mat"></div>
+		</div>
+		
+
+		<script type="module">
+			import { el, rand, sleep, qry, qryAll, log, sortDesc, renderColorText } from '../lib/lib.js';
+			
+			const data = {
+				events: [
+					{
+						name: 'One Ton Deadlift',
+						actions: ['adjusting grip', 'deadlifting']
+					},
+					{
+						name: 'One Ton Bag Toss',
+						actions: ['recoiling', 'tossing']
+					}
+				],
+				warriors: [
+					{
+						name: 'Hafthor',
+						color: 'red',
+						strength: 6,
+						flex: 5,
+						wins: 0
+					},
+					{
+						name: 'Hulk',
+						color: 'yellowgreen',
+						strength: 10,
+						flex: 3,
+						wins: 0
+					},
+					{
+						name: 'Simon',
+						color: 'violet',
+						strength: 3,
+						flex: 6,
+						wins: 0
+					}
+				]
+			};
+		
+			(function(data) {
+				const { warriors } = data;
+				let hasEnded = true;
+				let isWarp = false;
+				
+				async function loop() {
+					hasEnded = false;
+					
+					for (const [i, event] of data.events.entries()) {
+						qry('h1').insert(`Event ${i + 1}: ${event.name}`);
+						for (const [j, man] of warriors.entries()) {
+							const actions = event.actions.slice();
+							
+							for (const [k, action] of actions.entries()) {
+								qry('.mat').insert(`${renderManColor(man)} ${action}${k < 2 ? '...' : ''}`);
+								
+								if (!isWarp) {
+									await sleep(1);
+								}
+								
+								if (!k) {
+									actions[1] = `${action}...${actions[1]}`;
+								}
+								
+								if (k === 1) {
+									let effort; 
+									
+									if (!i) {
+										effort = rand(0, man.strength);
+									} else {
+										effort = rand(0, man.strength) + rand(0, man.flex);
+									}
+									
+									let status = `${action}...${renderColorText('failed.', 'red')}`;
+									
+									if (effort > 3) {
+										status = `${action}...success!`;
+										warriors[j].wins++;
+									}
+									
+									actions.push(status);
+								}
+							}
+						}
+					}
+				
+					renderResults(findWinner());
+					warriors.forEach(item => item.wins = 0);
+					hasEnded = true;
+				}
+				
+				function findWinner() {
+					const list = sortDesc(warriors, 'wins');
+					
+					if (list[0].wins > list[1].wins) {
+						list[0].medal = 'gold';
+						
+						if (list[1].wins > list[2].wins) {
+							list[1].medal = 'silver';
+							list[2].medal = 'darkgoldenrod';
+						} else {
+							list[1].medal = 'silver';
+							list[2].medal = 'silver';
+						}
+					} else if (list[1].wins > list[2].wins) {
+						list[0].medal = 'gold';
+						list[1].medal = 'gold';
+						list[2].medal = 'silver';
+					} else {
+						list.forEach(item => item.medal = 'gold');
+					}
+					
+					return list;
+				}
+				
+				function renderResults(list) {
+					let tpl = '<ul class="results">';
+					
+					list.forEach(item => tpl = `${tpl}
+						<li><span class="medal" style="color: ${item.medal}"></span>${item.wins} ${renderManColor(item)}</li>
+					`)
+					
+					qry('h1').insert('Results');
+					qry('.mat').insert(`${tpl}</ul>`);
+				}
+				
+				function renderManColor(man) {
+					return `<span style="color: ${man.color}">${man.name}</span>`;
+				}
+				
+				function events() {
+					el('menu').node.addEventListener('click', e => {
+						const menu = e.target.innerText;
+						
+						if (menu === 'New' && hasEnded) {
+							isWarp = false;
+							loop();
+						} else if (menu === 'Warp' && hasEnded) {
+							isWarp = true;
+							loop();
+						}
+					}, true);
+				}
+			
+				function init() {
+					events();
+					loop();
+				}
+				
+				return {
+					init
+				};
+			})(data).init();
+		</script>
+	</body>
+</html>
