@@ -26,6 +26,7 @@
 			#menu {
 				font-size: .8rem;
 				color: #aaa;
+				margin-bottom: 20px;
 			}
 			
 			.menu-list {
@@ -38,6 +39,25 @@
 				cursor: pointer;
 				display: inline-block;
 				margin-right: 20px;
+			}
+			
+			h2 {
+				color: mediumpurple;
+				margin-bottom: 0;
+				font-size: 1rem;
+				font-weight: normal;
+			}
+			
+			h1 {
+				margin: 0 0 10px;
+			}
+			
+			.desc {
+				font-size: .8rem;
+				text-align: justify;
+				color: #999;
+				width: 360px;
+				height: 130px;
 			}
 			
 			.results {
@@ -64,8 +84,10 @@
 					</ul>
 				</nav>
 			</header>
-			<h1></h1>
-			<div class="mat"></div>
+			<h2>Event 1</h2>
+			<h1>One Ton Deadlift</h1>
+			<section class="desc">The dead lift is simply executed by bending down with your knees, reaching for the barbell bar, and slowly and carefully rising up again with the weight with the arms naturally at each side.  A good, secure grip is key especially when it involves such a heavy weight.  The bar is specially crafted in a space-age material in order to hold nearly half a ton on each side.</section>
+			<section class="mat">Simon lifting...</section>
 		</div>
 		
 
@@ -76,11 +98,18 @@
 				events: [
 					{
 						name: 'One Ton Deadlift',
+						desc: 'The dead lift is executed by bending down with your knees, reaching for the bar, and slowly rising up with the weight and the arms naturally at each side.  A good, secure grip is key especially when it involves a heavy weight.  The bar is specially crafted in a space-age material in order to hold nearly half a ton on each side.',
 						actions: ['adjusting grip', 'deadlifting']
 					},
 					{
-						name: 'One Ton Bag Toss',
-						actions: ['recoiling', 'tossing']
+						name: 'Double Decker Toss',
+						desc: 'Tossing a double decker bus requires not only tremendous strength but good elasticity.  To start, first requires ability to lift and windup the vehicle and then throwing it and having it clear over a 20-foot high bar.',
+						actions: ['winding up', 'tossing']
+					},
+					{
+						name: 'Land Lift',
+						desc: 'The land lift is the greatest test of a true warrior.  Lifting multiple layers of top soil and bedrock covering the area of a small country, can the contestant avoid the likelihood of being squashed and buried forever?',
+						actions: ['lifting', 'lifting']
 					}
 				],
 				warriors: [
@@ -115,14 +144,17 @@
 				
 				async function loop() {
 					hasEnded = false;
+					qry('.desc').show();
 					
 					for (const [i, event] of data.events.entries()) {
-						qry('h1').insert(`Event ${i + 1}: ${event.name}`);
+						qry('h2').insert(`Event ${i + 1}`);
+						qry('h1').insert(event.name);
+						qry('.desc').insert(event.desc);
 						for (const [j, man] of warriors.entries()) {
 							const actions = event.actions.slice();
 							
 							for (const [k, action] of actions.entries()) {
-								qry('.mat').insert(`${renderManColor(man)} ${action}${k < 2 ? '...' : ''}`);
+								qry('.mat').insert(`${renderColorText(man.name, man.color)} ${action}${k < 2 ? '...' : ''}`);
 								
 								if (!isWarp) {
 									await sleep(1);
@@ -133,17 +165,11 @@
 								}
 								
 								if (k === 1) {
-									let effort; 
+									const txt = event.name.includes('Land') ? 'crushed!' : 'failed.';
 									
-									if (!i) {
-										effort = rand(0, man.strength);
-									} else {
-										effort = rand(0, man.strength) + rand(0, man.flex);
-									}
+									let status = `${action}...${renderColorText(txt, 'red')}`;
 									
-									let status = `${action}...${renderColorText('failed.', 'red')}`;
-									
-									if (effort > 3) {
+									if (isWinner(i, man)) {
 										status = `${action}...success!`;
 										warriors[j].wins++;
 									}
@@ -157,6 +183,24 @@
 					renderResults(findWinner());
 					warriors.forEach(item => item.wins = 0);
 					hasEnded = true;
+				}
+				
+				function isWinner(eventIndex, man) {
+					let effort; 
+				
+					switch(eventIndex) {
+						case 0:
+							effort = rand(0, man.strength);
+							break;
+						case 1:
+							effort = rand(0, man.strength) + rand(0, man.flex);
+							break;
+						case 2:
+							effort = rand(0, man.strength) - 3;
+							break;
+					}
+					
+					return effort > 3;
 				}
 				
 				function findWinner() {
@@ -187,15 +231,14 @@
 					let tpl = '<ul class="results">';
 					
 					list.forEach(item => tpl = `${tpl}
-						<li><span class="medal" style="color: ${item.medal}"></span>${item.wins} ${renderManColor(item)}</li>
+						<li><span class="medal" style="color: ${item.medal}"></span>
+						${item.wins} ${renderColorText(item.name, item.color)}</li>
 					`)
 					
+					qry('h2').insert('Final');
 					qry('h1').insert('Results');
+					qry('.desc').hide();
 					qry('.mat').insert(`${tpl}</ul>`);
-				}
-				
-				function renderManColor(man) {
-					return `<span style="color: ${man.color}">${man.name}</span>`;
 				}
 				
 				function events() {
